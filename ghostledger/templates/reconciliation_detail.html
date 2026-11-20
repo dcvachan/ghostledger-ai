@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Run #{{ run.id }} Details - GhostLedger AI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title-group">
+        <a href="{{ url_for('reconciliation.index') }}" style="font-size: 0.85rem; font-weight: 600; color: var(--neutral-500); display: block; margin-bottom: 0.25rem;">← Back to Runs</a>
+        <h1>Reconciliation Run #{{ run.id }}</h1>
+        <p class="page-subtitle">Executed at {{ run.completed_at | datetime_format }} • Run UUID: <span class="code-pill">{{ run.run_id }}</span></p>
+    </div>
+</div>
+
+<div class="kpi-grid">
+    <div class="kpi-card success">
+        <div class="kpi-header"><span class="kpi-title">Match Rate</span><span>✅</span></div>
+        <div class="kpi-value">{{ run.match_rate }}%</div>
+        <div class="kpi-subtext">{{ run.matched_records }} of {{ run.total_records }} matched</div>
+    </div>
+    <div class="kpi-card danger">
+        <div class="kpi-header"><span class="kpi-title">Exceptions Flagged</span><span>⚠️</span></div>
+        <div class="kpi-value">{{ run.discrepancy_records }}</div>
+        <div class="kpi-subtext">Unresolved exceptions</div>
+    </div>
+    <div class="kpi-card warning">
+        <div class="kpi-header"><span class="kpi-title">Amount at Risk</span><span>🛡️</span></div>
+        <div class="kpi-value">{{ run.amount_at_risk | currency('INR') }}</div>
+        <div class="kpi-subtext">Unresolved financial exposure</div>
+    </div>
+    <div class="kpi-card success" style="border: 2px solid var(--success);">
+        <div class="kpi-header"><span class="kpi-title" style="color: var(--success);">Verified Recovered</span><span>💰</span></div>
+        <div class="kpi-value" style="color: var(--success);">{{ run.recovered_amount | currency('INR') }}</div>
+        <div class="kpi-subtext">Verified human resolutions</div>
+    </div>
+</div>
+
+<!-- Matches Table -->
+<div class="card" style="margin-bottom: 2rem;">
+    <div class="card-header">
+        <h2 class="card-title">Verified Matches ({{ matches | length }})</h2>
+    </div>
+    <div class="card-body p-0">
+        {% if matches %}
+        <div class="table-responsive">
+            <table class="fintech-table">
+                <thead>
+                    <tr>
+                        <th>Match Type</th>
+                        <th>Confidence</th>
+                        <th>Primary Payment</th>
+                        <th>Matched Counterpart</th>
+                        <th>Evidence Rule</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in matches %}
+                    <tr>
+                        <td><span class="badge badge-low">{{ m.match_type }}</span></td>
+                        <td><strong style="color: var(--success);">{{ m.confidence_score }}%</strong></td>
+                        <td>
+                            <strong>{{ m.primary_transaction.external_reference_id if m.primary_transaction else 'N/A' }}</strong>
+                            <div style="font-size: 0.75rem; color: var(--neutral-500);">{{ m.primary_transaction.amount | currency(m.primary_transaction.currency) }}</div>
+                        </td>
+                        <td>
+                            <strong>{{ m.matched_transaction.external_reference_id if m.matched_transaction else 'N/A' }}</strong>
+                            <div style="font-size: 0.75rem; color: var(--neutral-500);">Source: {{ m.matched_transaction.source_type if m.matched_transaction else 'N/A' }}</div>
+                        </td>
+                        <td>
+                            <div style="font-size: 0.82rem;">{{ m.evidence_json.get('rule', 'Deterministic Match') }}</div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p class="empty-state-desc">No matches recorded for this run.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Exceptions Table -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Run Exceptions ({{ exceptions | length }})</h2>
+    </div>
+    <div class="card-body p-0">
+        {% if exceptions %}
+        <div class="table-responsive">
+            <table class="fintech-table">
+                <thead>
+                    <tr>
+                        <th>Exception ID</th>
+                        <th>Type</th>
+                        <th>Severity</th>
+                        <th>Status</th>
+                        <th>Amount Exposed</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for exc in exceptions %}
+                    <tr>
+                        <td><strong>EXC-{{ exc.id }}</strong></td>
+                        <td>{{ exc.exception_type | replace('_', ' ') }}</td>
+                        <td><span class="badge badge-{{ exc.severity | lower }}">{{ exc.severity }}</span></td>
+                        <td><span class="badge badge-{{ exc.status | lower }}">{{ exc.status }}</span></td>
+                        <td><strong>{{ exc.amount_exposed | currency(exc.currency) }}</strong></td>
+                        <td>
+                            <a href="{{ url_for('exceptions.detail', exception_id=exc.id) }}" class="btn btn-secondary btn-sm">Investigate</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p class="empty-state-desc">No exceptions flagged in this run.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,23 @@
+{
+  "reconciliation_metrics": {
+    "total_payments_evaluated": 106,
+    "matched_records": 84,
+    "unmatched_records": 22,
+    "reconciliation_match_rate_pct": 79.25
+  },
+  "discrepancy_detection_metrics": {
+    "true_positives": 36,
+    "false_positives": 0,
+    "false_negatives": 0,
+    "true_negatives": 70,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_score": 1.0,
+    "false_positive_count": 0
+  },
+  "financial_exposure": {
+    "total_amount_at_risk_inr": 187551.71,
+    "confirmed_discrepancies_inr": 159642.71,
+    "actual_recovered_inr": 0.0
+  }
+}

@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block title %}Executive Dashboard - GhostLedger AI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title-group">
+        <h1>Payment Reconciliation & Investigation</h1>
+        <p class="page-subtitle">Evidence-first automated audit trail, discrepancy detection, and draft human approvals.</p>
+    </div>
+    <div class="header-actions">
+        <button id="btn-seed-demo" class="btn btn-secondary">
+            <span>🎲</span> Seed 100+ Demo Records
+        </button>
+        <form action="{{ url_for('reconciliation.trigger_run') }}" method="POST" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-primary">
+                <span>⚡</span> Run Reconciliation
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- KPI Cards Grid -->
+<div class="kpi-grid">
+    <div class="kpi-card accent">
+        <div class="kpi-header">
+            <span class="kpi-title">Ingested Records</span>
+            <span class="kpi-icon">📊</span>
+        </div>
+        <div class="kpi-value">{{ metrics.total_records }}</div>
+        <div class="kpi-subtext">Total payment transactions considered</div>
+    </div>
+
+    <div class="kpi-card success">
+        <div class="kpi-header">
+            <span class="kpi-title">Matched Records</span>
+            <span class="kpi-icon">✅</span>
+        </div>
+        <div class="kpi-value">{{ metrics.matched_records }}</div>
+        <div class="kpi-subtext">Match Rate: <strong>{{ metrics.match_rate }}%</strong></div>
+    </div>
+
+    <div class="kpi-card warning">
+        <div class="kpi-header">
+            <span class="kpi-title">Active Exceptions</span>
+            <span class="kpi-icon">⚠️</span>
+        </div>
+        <div class="kpi-value">{{ metrics.open_exceptions_count }}</div>
+        <div class="kpi-subtext">{{ metrics.resolved_exceptions_count }} exceptions resolved</div>
+    </div>
+
+    <div class="kpi-card danger">
+        <div class="kpi-header">
+            <span class="kpi-title">Estimated Amount at Risk</span>
+            <span class="kpi-icon">🛡️</span>
+        </div>
+        <div class="kpi-value">{{ metrics.amount_at_risk | currency(metrics.currency) }}</div>
+        <div class="kpi-subtext">Unresolved financial exposure</div>
+    </div>
+
+    <div class="kpi-card">
+        <div class="kpi-header">
+            <span class="kpi-title">Confirmed Discrepancies</span>
+            <span class="kpi-icon">🔍</span>
+        </div>
+        <div class="kpi-value">{{ metrics.confirmed_discrepancies_amount | currency(metrics.currency) }}</div>
+        <div class="kpi-subtext">Verified mismatches & duplicate charges</div>
+    </div>
+
+    <div class="kpi-card success" style="border: 2px solid var(--success);">
+        <div class="kpi-header">
+            <span class="kpi-title" style="color: var(--success);">Actual Recovered Money</span>
+            <span class="kpi-icon">💰</span>
+        </div>
+        <div class="kpi-value" style="color: var(--success);">{{ metrics.actual_recovered_amount | currency(metrics.currency) }}</div>
+        <div class="kpi-subtext">Recorded strictly from verified resolutions</div>
+    </div>
+</div>
+
+<!-- Charts Section -->
+<div class="charts-grid">
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Discrepancy Breakdown by Category</h2>
+        </div>
+        <div class="card-body" style="height: 280px; position: relative;">
+            <canvas id="discrepancyBarChart"></canvas>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Reconciliation Breakdown</h2>
+        </div>
+        <div class="card-body" style="height: 280px; position: relative;">
+            <canvas id="matchDoughnutChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Tables: Recent Exceptions & Pending Draft Actions -->
+<div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+    <!-- Active Discrepancy Queue -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">High Priority Exceptions</h2>
+            <a href="{{ url_for('exceptions.index') }}" class="btn btn-secondary btn-sm">View All ({{ metrics.open_exceptions_count }})</a>
+        </div>
+        <div class="card-body p-0">
+            {% if recent_exceptions %}
+            <div class="table-responsive">
+                <table class="fintech-table">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Severity</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for exc in recent_exceptions %}
+                        <tr>
+                            <td>
+                                <strong>{{ exc.exception_type | replace('_', ' ') }}</strong>
+                                <div style="font-size: 0.78rem; color: var(--neutral-500);">Ref: {{ exc.transaction.external_reference_id if exc.transaction else 'N/A' }}</div>
+                            </td>
+                            <td><strong>{{ exc.amount_exposed | currency(exc.currency) }}</strong></td>
+                            <td>
+                                <span class="badge badge-{{ exc.severity | lower }}">
+                                    <span class="badge-dot"></span> {{ exc.severity }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-{{ exc.status | lower }}">{{ exc.status }}</span>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('exceptions.detail', exception_id=exc.id) }}" class="btn btn-secondary btn-sm">Investigate</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">📋</div>
+                <h3 class="empty-state-title">No Active Exceptions</h3>
+                <p class="empty-state-desc">Click 'Seed 100+ Demo Records' or ingest CSV files to begin reconciliation.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Pending Draft Actions (Human Approval Gate) -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Pending Human Approvals</h2>
+            <a href="{{ url_for('actions.index') }}" class="btn btn-secondary btn-sm">All Actions</a>
+        </div>
+        <div class="card-body p-0">
+            {% if pending_actions %}
+            <div class="table-responsive">
+                <table class="fintech-table">
+                    <thead>
+                        <tr>
+                            <th>Action</th>
+                            <th>Target</th>
+                            <th>Controls</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for act in pending_actions %}
+                        <tr>
+                            <td>
+                                <div style="font-weight: 600; font-size: 0.85rem;">{{ act.action_type | replace('_', ' ') }}</div>
+                                <div style="font-size: 0.75rem; color: var(--neutral-500);">{{ act.rationale[:55] }}...</div>
+                            </td>
+                            <td><span class="code-pill">{{ act.target_entity_id }}</span></td>
+                            <td>
+                                <form action="{{ url_for('actions.review', action_id=act.id) }}" method="POST" style="display:inline-flex; gap: 4px;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="comment" value="Approved from dashboard queue">
+                                    <button type="submit" name="decision" value="APPROVED" class="btn btn-success btn-sm" title="Approve draft action">✓</button>
+                                    <button type="submit" name="decision" value="REJECTED" class="btn btn-danger btn-sm" title="Reject draft action">✕</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">🛡️</div>
+                <h3 class="empty-state-title">Queue Clear</h3>
+                <p class="empty-state-desc">All proposed draft actions have been reviewed by a human financial analyst.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

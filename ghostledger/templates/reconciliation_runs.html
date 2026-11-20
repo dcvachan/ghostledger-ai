@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Reconciliation Runs - GhostLedger AI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title-group">
+        <h1>Reconciliation Runs</h1>
+        <p class="page-subtitle">Multi-pass deterministic matching history and ledger audit runs.</p>
+    </div>
+    <div class="header-actions">
+        <form action="{{ url_for('reconciliation.trigger_run') }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-primary">
+                <span>⚡</span> Execute Reconciliation Run
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Run History</h2>
+    </div>
+    <div class="card-body p-0">
+        {% if runs %}
+        <div class="table-responsive">
+            <table class="fintech-table">
+                <thead>
+                    <tr>
+                        <th>Run ID</th>
+                        <th>Total</th>
+                        <th>Matched</th>
+                        <th>Match Rate</th>
+                        <th>Exceptions</th>
+                        <th>Amount at Risk</th>
+                        <th>Actual Recovered</th>
+                        <th>Executed At</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in runs %}
+                    <tr>
+                        <td>
+                            <strong>Run #{{ r.id }}</strong>
+                            <div style="font-size: 0.75rem; color: var(--neutral-500);"><span class="code-pill">{{ r.run_id[:8] }}...</span></div>
+                        </td>
+                        <td>{{ r.total_records }}</td>
+                        <td><strong style="color: var(--success);">{{ r.matched_records }}</strong></td>
+                        <td>
+                            <strong>{{ r.match_rate }}%</strong>
+                        </td>
+                        <td>
+                            {% if r.discrepancy_records > 0 %}
+                            <span class="badge badge-high">{{ r.discrepancy_records }}</span>
+                            {% else %}
+                            <span class="badge badge-resolved">0</span>
+                            {% endif %}
+                        </td>
+                        <td style="color: var(--danger); font-weight: 600;">
+                            {{ r.amount_at_risk | currency('INR') }}
+                        </td>
+                        <td style="color: var(--success); font-weight: 600;">
+                            {{ r.recovered_amount | currency('INR') }}
+                        </td>
+                        <td>{{ r.completed_at | datetime_format }}</td>
+                        <td>
+                            <a href="{{ url_for('reconciliation.run_detail', run_id=r.id) }}" class="btn btn-secondary btn-sm">Inspect</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">⚡</div>
+            <h3 class="empty-state-title">No Reconciliation Runs Executed</h3>
+            <p class="empty-state-desc">Click 'Execute Reconciliation Run' to trigger deterministic multi-pass matching.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

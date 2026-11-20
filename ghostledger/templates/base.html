@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{% block title %}GhostLedger AI - Evidence-First Financial Investigation Agent{% endblock %}</title>
+    
+    <!-- Google Fonts & System typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <header class="navbar">
+        <div class="navbar-inner">
+            <a href="{{ url_for('dashboard.index') }}" class="brand">
+                <div class="brand-icon">⚡</div>
+                <span>GhostLedger</span>
+                <span class="brand-badge">AI Agent</span>
+            </a>
+
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="{{ url_for('dashboard.index') }}" class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}">Dashboard</a></li>
+                    <li><a href="{{ url_for('imports.index') }}" class="nav-link {% if 'imports' in request.endpoint %}active{% endif %}">CSV Ingestion</a></li>
+                    <li><a href="{{ url_for('reconciliation.index') }}" class="nav-link {% if 'reconciliation' in request.endpoint %}active{% endif %}">Reconciliation</a></li>
+                    <li><a href="{{ url_for('exceptions.index') }}" class="nav-link {% if 'exceptions' in request.endpoint %}active{% endif %}">Exceptions</a></li>
+                    <li><a href="{{ url_for('actions.index') }}" class="nav-link {% if 'actions' in request.endpoint %}active{% endif %}">Draft Actions</a></li>
+                    <li><a href="{{ url_for('reports.index') }}" class="nav-link {% if request.endpoint == 'reports.index' %}active{% endif %}">Reports</a></li>
+                    <li><a href="{{ url_for('reports.audit_log') }}" class="nav-link {% if request.endpoint == 'reports.audit_log' %}active{% endif %}">Audit Trail</a></li>
+                </ul>
+            </nav>
+
+            <div class="nav-actions">
+                <div class="user-pill">
+                    <div class="user-avatar">{{ (session.get('username', 'A')[:1]) | upper }}</div>
+                    <span>{{ session.get('username', 'Analyst') }}</span>
+                </div>
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-secondary btn-sm" title="Sign out">Logout</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container">
+        <!-- Flash Alert Messages -->
+        <div class="flash-container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">
+                            <span>{{ message }}</span>
+                            <button type="button" style="background:none;border:none;cursor:pointer;font-weight:bold;color:inherit;" onclick="this.parentElement.remove()">✕</button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Global Footer -->
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="system-status">
+                <div class="status-dot"></div>
+                <span><strong>GhostLedger Engine:</strong> Operational • Multi-Pass Deterministic Matching & Tool-Grounded Agent</span>
+            </div>
+            <div>
+                <span>Razorpay AI Builders Submission • Safe Draft-Only Architecture</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Frontend Core Scripts -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

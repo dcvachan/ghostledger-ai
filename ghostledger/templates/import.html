@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}CSV Ingestion & Validation - GhostLedger AI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title-group">
+        <h1>Financial Data Ingestion</h1>
+        <p class="page-subtitle">Upload multi-source CSV files with strict schema validation and CSV formula injection defenses.</p>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+    <!-- Upload Card -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Upload Transaction Statement</h2>
+        </div>
+        <div class="card-body">
+            <form action="{{ url_for('imports.upload') }}" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="form-group">
+                    <label class="form-label" for="file_type">Statement Type</label>
+                    <select name="file_type" id="file_type" class="form-control" required>
+                        <option value="PAYMENT">Payment Gateway Records (Razorpay, Stripe)</option>
+                        <option value="BANK_STATEMENT">Bank Statements (HDFC, ICICI, Nodal)</option>
+                        <option value="SETTLEMENT">Settlement & Payout Reports</option>
+                        <option value="INVOICE">Invoices / Order Registry</option>
+                        <option value="REFUND">Refund & Reversal Records</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="file">CSV File</label>
+                    <input type="file" name="file" id="file" class="form-control" accept=".csv" required>
+                    <small style="color: var(--neutral-500); display: block; margin-top: 4px;">Max size 10MB. Formulas sanitized against DDE injection.</small>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
+                    <button type="submit" class="btn btn-primary">
+                        <span>📤</span> Validate & Ingest File
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Security & Schema Info -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Ingestion Guarantees</h2>
+        </div>
+        <div class="card-body">
+            <div style="margin-bottom: 1rem;">
+                <h4 style="margin-bottom: 0.25rem;">🔒 DDE / Formula Injection Defense</h4>
+                <p style="font-size: 0.85rem; color: var(--neutral-500);">Cells starting with <code class="code-pill">=</code>, <code class="code-pill">+</code>, <code class="code-pill">-</code>, or <code class="code-pill">@</code> are sanitized to prevent Excel/CSV formula execution.</p>
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <h4 style="margin-bottom: 0.25rem;">🛡️ Idempotent Deduplication</h4>
+                <p style="font-size: 0.85rem; color: var(--neutral-500);">SHA-256 fingerprinting ensures duplicate files and identical batches cannot be double-processed.</p>
+            </div>
+            <div>
+                <h4 style="margin-bottom: 0.25rem;">📐 Decimal Precision</h4>
+                <p style="font-size: 0.85rem; color: var(--neutral-500);">Currency parsed directly into Python <code class="code-pill">Decimal</code> objects, eliminating binary floating-point roundoff.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if report %}
+<!-- Ingestion Report & Validation Summary -->
+<div class="card" style="margin-bottom: 2rem;">
+    <div class="card-header">
+        <h2 class="card-title">Validation Report: {{ report.filename }}</h2>
+        <span class="badge {% if report.valid_count > 0 %}badge-resolved{% else %}badge-high{% endif %}">
+            {{ report.valid_count }} Valid / {{ report.error_count }} Errors
+        </span>
+    </div>
+    <div class="card-body">
+        {% if report.errors %}
+        <div style="margin-bottom: 1.5rem;">
+            <h4 style="color: var(--danger); margin-bottom: 0.5rem;">Validation Rejections ({{ report.errors | length }})</h4>
+            <div class="table-responsive">
+                <table class="fintech-table">
+                    <thead>
+                        <tr>
+                            <th>Row</th>
+                            <th>Reference ID</th>
+                            <th>Reason</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for err in report.errors %}
+                        <tr>
+                            <td><span class="code-pill">#{{ err.row }}</span></td>
+                            <td>{{ err.reference or 'N/A' }}</td>
+                            <td style="color: var(--danger);">{{ err.reason }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if report.preview %}
+        <div>
+            <h4 style="margin-bottom: 0.5rem;">Parsed Sample Records Preview</h4>
+            <div class="table-responsive">
+                <table class="fintech-table">
+                    <thead>
+                        <tr>
+                            <th>Reference ID</th>
+                            <th>Order ID</th>
+                            <th>Amount</th>
+                            <th>Time (UTC)</th>
+                            <th>Counterparty</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in report.preview %}
+                        <tr>
+                            <td><strong>{{ row.reference_id }}</strong></td>
+                            <td>{{ row.order_id or '—' }}</td>
+                            <td>{{ row.amount }} {{ row.currency }}</td>
+                            <td>{{ row.time }}</td>
+                            <td>{{ row.counterparty or '—' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Ingested Files History -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Ingested Statement Files History</h2>
+    </div>
+    <div class="card-body p-0">
+        {% if files %}
+        <div class="table-responsive">
+            <table class="fintech-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Filename</th>
+                        <th>Statement Type</th>
+                        <th>Records</th>
+                        <th>Status</th>
+                        <th>SHA-256 Fingerprint</th>
+                        <th>Ingested At</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in files %}
+                    <tr>
+                        <td>#{{ f.id }}</td>
+                        <td><strong>{{ f.filename }}</strong></td>
+                        <td><span class="badge badge-low">{{ f.file_type }}</span></td>
+                        <td>{{ f.valid_count }} / {{ f.record_count }}</td>
+                        <td>
+                            <span class="badge {% if f.status == 'COMPLETED' %}badge-resolved{% else %}badge-high{% endif %}">
+                                {{ f.status }}
+                            </span>
+                        </td>
+                        <td><span class="code-pill">{{ f.file_hash[:16] }}...</span></td>
+                        <td>{{ f.created_at | datetime_format }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">📁</div>
+            <h3 class="empty-state-title">No Ingested Files</h3>
+            <p class="empty-state-desc">Upload a CSV statement or click 'Seed 100+ Demo Records' from the dashboard.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

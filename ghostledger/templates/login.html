@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In - GhostLedger AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background-color: var(--neutral-100);">
+    <div style="max-width: 440px; width: 100%; padding: 1.5rem;">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <div style="display: inline-flex; align-items: center; gap: 0.75rem; font-size: 1.6rem; font-weight: 700; color: var(--primary);">
+                <div class="brand-icon" style="width: 42px; height: 42px; font-size: 1.3rem;">⚡</div>
+                <span>GhostLedger</span>
+            </div>
+            <p style="color: var(--neutral-500); font-size: 0.9rem; margin-top: 0.5rem;">
+                Evidence-First AI Payment Reconciliation & Financial Investigation
+            </p>
+        </div>
+
+        <div class="card" style="box-shadow: var(--shadow-lg);">
+            <div class="card-header" style="text-align: center; justify-content: center;">
+                <h2 class="card-title">Sign In to Dashboard</h2>
+            </div>
+            <div class="card-body">
+                <!-- Flash messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="flash-message flash-{{ category }}" style="margin-bottom: 1rem;">
+                                <span>{{ message }}</span>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                {% if demo_mode %}
+                <!-- One-Click Demo Mode Sign-in -->
+                <form action="{{ url_for('auth.login') }}" method="POST" style="margin-bottom: 1.5rem;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="demo_login" value="true">
+                    <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-size: 0.95rem;">
+                        <span>🚀</span> One-Click Demo Analyst Login
+                    </button>
+                    <small style="display: block; text-align: center; color: var(--neutral-500); margin-top: 0.4rem;">
+                        Pre-configured for Razorpay AI Builders evaluation.
+                    </small>
+                </form>
+
+                <div style="display: flex; align-items: center; text-align: center; margin: 1.25rem 0;">
+                    <div style="flex: 1; border-bottom: 1px solid var(--neutral-300);"></div>
+                    <span style="padding: 0 0.75rem; color: var(--neutral-500); font-size: 0.8rem; text-transform: uppercase;">or sign in manually</span>
+                    <div style="flex: 1; border-bottom: 1px solid var(--neutral-300);"></div>
+                </div>
+                {% endif %}
+
+                <!-- Standard Credentials Form -->
+                <form action="{{ url_for('auth.login') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="form-group">
+                        <label class="form-label" for="username">Username or Email</label>
+                        <input type="text" name="username" id="username" class="form-control" placeholder="analyst@ghostledger.ai" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="password">Password</label>
+                        <input type="password" name="password" id="password" class="form-control" placeholder="••••••••••••" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-secondary" style="width: 100%; margin-top: 0.5rem;">
+                        Sign In
+                    </button>
+                </form>
+
+                <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--neutral-200); font-size: 0.8rem; color: var(--neutral-500); text-align: center;">
+                    Default Demo Analyst: <code class="code-pill">demo_analyst</code> • Password: <code class="code-pill">GhostLedger@2026</code>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

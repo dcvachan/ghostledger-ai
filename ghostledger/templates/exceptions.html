@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Exception Queue - GhostLedger AI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title-group">
+        <h1>Financial Exception Queue</h1>
+        <p class="page-subtitle">Triage, prioritize, and investigate discrepancies flagged across statements.</p>
+    </div>
+</div>
+
+<!-- Filter Bar -->
+<form method="GET" action="{{ url_for('exceptions.index') }}" class="filter-bar">
+    <div class="filter-item">
+        <label for="status">Status</label>
+        <select name="status" id="status" class="form-control" style="width: 140px;">
+            <option value="">All Statuses</option>
+            <option value="OPEN" {% if current_status == 'OPEN' %}selected{% endif %}>OPEN</option>
+            <option value="UNDER_INVESTIGATION" {% if current_status == 'UNDER_INVESTIGATION' %}selected{% endif %}>INVESTIGATING</option>
+            <option value="DRAFTED_ACTION" {% if current_status == 'DRAFTED_ACTION' %}selected{% endif %}>DRAFTED ACTION</option>
+            <option value="RESOLVED" {% if current_status == 'RESOLVED' %}selected{% endif %}>RESOLVED</option>
+        </select>
+    </div>
+
+    <div class="filter-item">
+        <label for="severity">Severity</label>
+        <select name="severity" id="severity" class="form-control" style="width: 130px;">
+            <option value="">All Severities</option>
+            <option value="HIGH" {% if current_severity == 'HIGH' %}selected{% endif %}>HIGH</option>
+            <option value="MEDIUM" {% if current_severity == 'MEDIUM' %}selected{% endif %}>MEDIUM</option>
+            <option value="LOW" {% if current_severity == 'LOW' %}selected{% endif %}>LOW</option>
+        </select>
+    </div>
+
+    <div class="filter-item">
+        <label for="type">Exception Type</label>
+        <select name="type" id="type" class="form-control" style="width: 190px;">
+            <option value="">All Discrepancy Types</option>
+            <option value="DUPLICATE_PAYMENT" {% if current_type == 'DUPLICATE_PAYMENT' %}selected{% endif %}>Duplicate Payment</option>
+            <option value="MISSING_SETTLEMENT" {% if current_type == 'MISSING_SETTLEMENT' %}selected{% endif %}>Missing Settlement</option>
+            <option value="FEE_MISMATCH" {% if current_type == 'FEE_MISMATCH' %}selected{% endif %}>Fee Mismatch</option>
+            <option value="AMOUNT_MISMATCH" {% if current_type == 'AMOUNT_MISMATCH' %}selected{% endif %}>Amount Mismatch</option>
+            <option value="DELAYED_REFUND" {% if current_type == 'DELAYED_REFUND' %}selected{% endif %}>Delayed Refund</option>
+            <option value="AMBIGUOUS_CANDIDATE" {% if current_type == 'AMBIGUOUS_CANDIDATE' %}selected{% endif %}>Ambiguous Candidate</option>
+        </select>
+    </div>
+
+    <div style="display: flex; gap: 0.5rem; margin-left: auto;">
+        <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
+        <a href="{{ url_for('exceptions.index') }}" class="btn btn-secondary btn-sm" style="color: var(--neutral-500);">Reset</a>
+    </div>
+</form>
+
+<!-- Exceptions Table -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Exceptions ({{ exceptions | length }})</h2>
+    </div>
+    <div class="card-body p-0">
+        {% if exceptions %}
+        <div class="table-responsive">
+            <table class="fintech-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Discrepancy Type</th>
+                        <th>Reference ID</th>
+                        <th>Amount Exposed</th>
+                        <th>Severity</th>
+                        <th>Status</th>
+                        <th>Evidence Preview</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for exc in exceptions %}
+                    <tr>
+                        <td><strong>EXC-{{ exc.id }}</strong></td>
+                        <td>
+                            <strong>{{ exc.exception_type | replace('_', ' ') }}</strong>
+                        </td>
+                        <td>
+                            <span class="code-pill">{{ exc.transaction.external_reference_id if exc.transaction else 'N/A' }}</span>
+                            {% if exc.transaction and exc.transaction.merchant_order_id %}
+                            <div style="font-size: 0.75rem; color: var(--neutral-500);">Order: {{ exc.transaction.merchant_order_id }}</div>
+                            {% endif %}
+                        </td>
+                        <td><strong>{{ exc.amount_exposed | currency(exc.currency) }}</strong></td>
+                        <td><span class="badge badge-{{ exc.severity | lower }}">{{ exc.severity }}</span></td>
+                        <td><span class="badge badge-{{ exc.status | lower }}">{{ exc.status }}</span></td>
+                        <td style="max-width: 320px; font-size: 0.8rem; color: var(--neutral-700);">
+                            {{ exc.evidence_summary[:85] }}...
+                        </td>
+                        <td>
+                            <a href="{{ url_for('exceptions.detail', exception_id=exc.id) }}" class="btn btn-secondary btn-sm">Investigate</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">🎉</div>
+            <h3 class="empty-state-title">No Exceptions Found</h3>
+            <p class="empty-state-desc">No records match the current filter criteria or all transactions have reconciled.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Immutable Audit Trail - GhostLedger AI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title-group">
+        <h1>Append-Only Audit Trail</h1>
+        <p class="page-subtitle">Cryptographically verifiable, immutable audit log of all system and user operations.</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Audit Events Log ({{ events | length }})</h2>
+    </div>
+    <div class="card-body p-0">
+        {% if events %}
+        <div class="table-responsive">
+            <table class="fintech-table">
+                <thead>
+                    <tr>
+                        <th>Timestamp (UTC)</th>
+                        <th>Event Type</th>
+                        <th>Actor</th>
+                        <th>Target Entity</th>
+                        <th>Details</th>
+                        <th>IP Address</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ev in events %}
+                    <tr>
+                        <td><strong>{{ ev.timestamp | datetime_format }}</strong></td>
+                        <td>
+                            <span class="badge badge-low">{{ ev.event_type }}</span>
+                        </td>
+                        <td><strong>{{ ev.actor }}</strong></td>
+                        <td>
+                            <span class="code-pill">{{ ev.entity_type }} #{{ ev.entity_id }}</span>
+                        </td>
+                        <td style="max-width: 380px; font-size: 0.8rem; color: var(--neutral-700);">
+                            {% for k, v in ev.action_details.items() %}
+                                <strong>{{ k }}:</strong> {{ v }}{% if not loop.last %} • {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td>{{ ev.ip_address or '127.0.0.1' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">📜</div>
+            <h3 class="empty-state-title">No Audit Events Logged</h3>
+            <p class="empty-state-desc">All system operations will be recorded here immutably.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

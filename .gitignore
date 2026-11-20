@@ -1,0 +1,34 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# Database files
+*.db
+*.sqlite3
+
+# Pytest / Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local configuration overrides (keep .env.example)
+.env
+
+# Uploads directory
+uploads/
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Workspace artifacts not part of GhostLedger
+aclImdb/
+aclImdb_v1.tar.gz
+*.pt
+sentiment*

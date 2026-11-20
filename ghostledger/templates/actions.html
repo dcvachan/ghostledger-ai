@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Draft Actions & Human Approvals - GhostLedger AI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title-group">
+        <h1>Draft Actions & Human Approvals</h1>
+        <p class="page-subtitle">Strict human-in-the-loop review. No real banking or financial money movements.</p>
+    </div>
+</div>
+
+<div class="card" style="background-color: var(--accent-light); border-left: 4px solid var(--accent); margin-bottom: 1.5rem;">
+    <div class="card-body" style="padding: 1rem 1.25rem;">
+        <div style="font-weight: 600; color: var(--primary); margin-bottom: 0.25rem;">🛡️ Safe Human Approval Boundary</div>
+        <p style="font-size: 0.88rem; color: var(--neutral-700);">
+            The AI investigation agent generates proposals strictly in <strong>DRAFT</strong> status. All actions (creating follow-up inquiries, voiding duplicate webhooks, or journal adjustments) require explicit human review and approval.
+        </p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Action Queue ({{ actions | length }})</h2>
+    </div>
+    <div class="card-body p-0">
+        {% if actions %}
+        <div class="table-responsive">
+            <table class="fintech-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Action Type</th>
+                        <th>Exception Ref</th>
+                        <th>Status</th>
+                        <th>Rationale</th>
+                        <th>Created By</th>
+                        <th>Reviewer & Controls</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for act in actions %}
+                    <tr>
+                        <td><strong>#{{ act.id }}</strong></td>
+                        <td>
+                            <strong>{{ act.action_type | replace('_', ' ') }}</strong>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('exceptions.detail', exception_id=act.exception_id) }}">EXC-{{ act.exception_id }}</a>
+                        </td>
+                        <td>
+                            <span class="badge {% if act.status == 'APPROVED' %}badge-resolved{% elif act.status == 'REJECTED' %}badge-high{% elif act.status == 'EXECUTED' %}badge-open{% else %}badge-drafted{% endif %}">
+                                {{ act.status }}
+                            </span>
+                        </td>
+                        <td style="max-width: 280px; font-size: 0.82rem;">
+                            {{ act.rationale }}
+                        </td>
+                        <td>{{ act.created_by }}</td>
+                        <td>
+                            {% if act.status == 'DRAFT' %}
+                            <form action="{{ url_for('actions.review', action_id=act.id) }}" method="POST" style="display: flex; gap: 0.35rem; align-items: center;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="comment" value="Approved by financial analyst">
+                                <button type="submit" name="decision" value="APPROVED" class="btn btn-success btn-sm">Approve</button>
+                                <button type="submit" name="decision" value="REJECTED" class="btn btn-danger btn-sm">Reject</button>
+                            </form>
+                            {% else %}
+                            <div style="font-size: 0.78rem; color: var(--neutral-500);">
+                                {{ act.reviewed_by or '—' }} ({{ act.approved_at | datetime_format }})
+                            </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">📋</div>
+            <h3 class="empty-state-title">No Draft Actions</h3>
+            <p class="empty-state-desc">Actions recommended by the AI investigation agent will appear here for human approval.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

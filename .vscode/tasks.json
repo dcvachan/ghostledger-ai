@@ -1,0 +1,50 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start GhostLedger Server",
+      "type": "shell",
+      "command": "python run.py",
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Run Evaluation Benchmark (evaluate.py)",
+      "type": "shell",
+      "command": "python evaluate.py",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Run Pytest Suite",
+      "type": "shell",
+      "command": "python -m pytest -v tests/",
+      "problemMatcher": [],
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Seed 100+ Demo Records",
+      "type": "shell",
+      "command": "python -c \"from ghostledger import create_app; from ghostledger.services.seed_data_service import seed_data_service; app = create_app(); ctx = app.app_context(); ctx.push(); res = seed_data_service.seed_database(); print(res['summary'])\"",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    }
+  ]
+}
